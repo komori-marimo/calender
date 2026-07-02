@@ -2,94 +2,67 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PBL 予定管理システム</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .form-section, .list-section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: inline-block; width: 100px; font-weight: bold; }
-        .form-group input, .form-group textarea { width: 300px; padding: 5px; }
-        .btn-submit { padding: 8px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-        .btn-submit:hover { background-color: #0056b3; }
-        
-        /* メッセージ表示スタイル（設計図の通知・エラーに連動） */
-        .flash-success { color: green; background-color: #e6f4ea; padding: 10px; margin-bottom: 15px; border-radius: 3px; }
-        .flash-error { color: red; background-color: #fce8e6; padding: 10px; margin-bottom: 15px; border-radius: 3px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
+    <title>PBLカレンダー</title>
 </head>
 <body>
-
-    <h1>予定管理システム（PBL開発ステップ1）</h1>
+    <h1>予定管理アプリ</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p style="color: {% if category == 'error' %}red{% else %}green{% endif %};">
+              {{ message }}
+          </p>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
 
-    <div class="form-section">
-        <h2>予定の登録</h2>
-        <form action="/" method="POST">
-            <div class="form-group">
-                <label for="title">予定名 *</label>
-                <input type="text" id="title" name="title" placeholder="例：チームミーティング">
-            </div>
-            <div class="form-group">
-                <label for="date">日付 *</label>
-                <input type="date" id="date" name="date">
-            </div>
-            <div class="form-group">
-                <label for="time">時間</label>
-                <input type="time" id="time" name="time">
-            </div>
-            <div class="form-group">
-                <label for="location">場所</label>
-                <input type="text" id="location" name="location" placeholder="例：第1会議室、Zoom">
-            </div>
-            <div class="form-group">
-                <label for="memo">メモ</label>
-                <textarea id="memo" name="memo" rows="3" placeholder="アジェンダなど"></textarea>
-            </div>
-            <button type="submit" class="btn-submit">登録</button>
-            <small style="color: #666; display: block; margin-top: 5px;">* は必須入力です</small>
-        </form>
-    </div>
+    <h2>予定の新規登録</h2>
+    <form method="POST" action="{{ url_for('index') }}">
+        <label>予定名 (必須): <input type="text" name="title"></label><br>
+        <label>日付 (必須): <input type="date" name="date"></label><br>
+        <label>時間: <input type="time" name="time"></label><br>
+        <label>場所: <input type="text" name="location"></label><br>
+        <label>メモ: <textarea name="memo"></textarea></label><br>
+        <button type="submit">登録</button>
+    </form>
 
-    <div class="list-section">
-        <h2>登録された予定一覧</h2>
-        {% if schedules %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>日付</th>
-                        <th>時間</th>
-                        <th>予定名</th>
-                        <th>場所</th>
-                        <th>メモ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for schedule in schedules %}
-                    <tr>
-                        <td>{{ schedule.date }}</td>
-                        <td>{{ schedule.time if schedule.time else '---' }}</td>
-                        <td><strong>{{ schedule.title }}</strong></td>
-                        <td>{{ schedule.location if schedule.location else '---' }}</td>
-                        <td>{{ schedule.memo if schedule.memo else '---' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>登録されている予定はありません。</p>
-        {% endif %}
-    </div>
+    <hr>
 
+    <h2>予定一覧</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>日付</th>
+                <th>時間</th>
+                <th>予定名</th>
+                <th>場所</th>
+                <th>メモ</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in schedules %}
+            <tr>
+                <td>{{ s.date }}</td>
+                <td>{{ s.time }}</td>
+                <td>{{ s.title }}</td>
+                <td>{{ s.location }}</td>
+                <td>{{ s.memo }}</td>
+                <td>
+                    <a href="{{ url_for('edit', id=s.id) }}">編集</a>
+                    
+                    <form action="{{ url_for('delete', id=s.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('本当に削除しますか？');">
+                        <button type="submit">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">予定はありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>

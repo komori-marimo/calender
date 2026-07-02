@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>予定の編集</title>
+</head>
+<body>
+    <h1>予定の編集</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p style="color: red;">{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('edit', id=schedule.id) }}">
+        <label>予定名 (必須): <input type="text" name="title" value="{{ schedule.title }}"></label><br>
+        <label>日付 (必須): <input type="date" name="date" value="{{ schedule.date }}"></label><br>
+        <label>時間: <input type="time" name="time" value="{{ schedule.time }}"></label><br>
+        <label>場所: <input type="text" name="location" value="{{ schedule.location }}"></label><br>
+        <label>メモ: <textarea name="memo">{{ schedule.memo }}</textarea></label><br>
+        <button type="submit">更新する</button>
+        <a href="{{ url_for('index') }}">キャンセル</a>
+    </form>
+</body>
+</html>
