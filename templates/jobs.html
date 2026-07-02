@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>バイト情報管理</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        .form-section, .list-section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: inline-block; width: 100px; font-weight: bold; }
+        .form-group input { width: 300px; padding: 5px; }
+        .btn-submit { padding: 8px 15px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+        .flash-success { color: green; background-color: #e6f4ea; padding: 10px; margin-bottom: 15px; border-radius: 3px; }
+        .flash-error { color: red; background-color: #fce8e6; padding: 10px; margin-bottom: 15px; border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .btn-delete { background: none; border: none; color: #dc3545; cursor: pointer; padding: 0; font-size: inherit; }
+    </style>
+</head>
+<body>
+
+    <h1>バイト情報管理</h1>
+    <p><a href="{{ url_for('index') }}">➔ 予定カレンダーに戻る</a></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="form-section">
+        <h2>バイト先の新規登録</h2>
+        <form action="{{ url_for('jobs_management') }}" method="POST">
+            <div class="form-group">
+                <label for="name">バイト名 *</label>
+                <input type="text" id="name" name="name" placeholder="例：カフェバイト">
+            </div>
+            <div class="form-group">
+                <label for="hourly_rate">時給 (円) *</label>
+                <input type="text" id="hourly_rate" name="hourly_rate" placeholder="例：1200">
+            </div>
+            <div class="form-group">
+                <label for="location">勤務場所</label>
+                <input type="text" id="location" name="location" placeholder="例：渋谷店">
+            </div>
+            <button type="submit" class="btn-submit">登録する</button>
+        </form>
+    </div>
+
+    <div class="list-section">
+        <h2>登録済みのバイト先一覧</h2>
+        {% if jobs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>バイト名</th>
+                        <th>時給</th>
+                        <th>勤務場所</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td><strong>{{ job.name }}</strong></td>
+                        <td>{{ job.hourly_rate }} 円</td>
+                        <td>{{ job.location if job.location else '---' }}</td>
+                        <td>
+                            <form action="{{ url_for('delete_job', id=job.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('このバイト先を削除しますか？');">
+                                <button type="submit" class="btn-delete">削除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>登録されているバイト先はありません。</p>
+        {% endif %}
+    </div>
+
+</body>
+</html>

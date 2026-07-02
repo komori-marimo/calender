@@ -28,6 +28,14 @@
 
     <h1>予定管理システム</h1>
 
+    <div class="form-section" style="background-color: #f8f9fa; border-left: 5px solid #28a745;">
+        <h2>💰 {{ current_month }} の概算給料</h2>
+        <p style="font-size: 24px; margin: 5px 0;"><strong>{{ total_salary }} 円</strong></p>
+        <small style="color: #666;">※事前登録されたバイト名を含む予定の開始〜終了時間から自動計算しています。</small>
+        <br><br>
+        <a href="{{ url_for('jobs_management') }}" style="color: #007bff; font-weight: bold;">➔ バイト先の事前登録・管理はこちら</a>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -41,23 +49,24 @@
         <form action="/" method="POST">
             <div class="form-group">
                 <label for="title">予定名 *</label>
-                <input type="text" id="title" name="title" placeholder="例：チームミーティング">
+                <input type="text" id="title" name="title" placeholder="例：カフェバイト">
             </div>
             <div class="form-group">
                 <label for="date">日付 *</label>
                 <input type="date" id="date" name="date">
             </div>
             <div class="form-group">
-                <label for="time">時間</label>
-                <input type="time" id="time" name="time">
+                <label>時間</label>
+                <input type="time" name="start_time"> ～ 
+                <input type="time" name="end_time">
             </div>
             <div class="form-group">
                 <label for="location">場所</label>
-                <input type="text" id="location" name="location" placeholder="例：第1会議室、Zoom">
+                <input type="text" id="location" name="location" placeholder="空欄ならバイト情報から自動補完">
             </div>
             <div class="form-group">
                 <label for="memo">メモ</label>
-                <textarea id="memo" name="memo" rows="3" placeholder="アジェンダなど"></textarea>
+                <textarea id="memo" name="memo" rows="3"></textarea>
             </div>
             <button type="submit" class="btn-submit">登録</button>
             <small style="color: #666; display: block; margin-top: 5px;">* は必須入力です</small>
@@ -82,7 +91,13 @@
                     {% for schedule in schedules %}
                     <tr>
                         <td>{{ schedule.date }}</td>
-                        <td>{{ schedule.time if schedule.time else '---' }}</td>
+                        <td>
+                            {% if schedule.start_time and schedule.end_time %}
+                                {{ schedule.start_time }} ～ {{ schedule.end_time }}
+                            {% else %}
+                                ---
+                            {% endif %}
+                        </td>
                         <td><strong>{{ schedule.title }}</strong></td>
                         <td>{{ schedule.location if schedule.location else '---' }}</td>
                         <td>{{ schedule.memo if schedule.memo else '---' }}</td>
