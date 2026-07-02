@@ -1,6 +1,6 @@
 import csv
 import os
-import uuid  # ID生成用に追加
+import uuid  # 各予定に一意のIDを割り振るために使用
 from datetime import datetime
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -15,7 +15,7 @@ def init_csv():
     if not os.path.exists(CSV_FILE):
         with open(CSV_FILE, mode="w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
-            # 編集・削除のために「id」を先頭に追加
+            # 編集・削除で特定するために「id」を先頭に追加します
             writer.writerow(["id", "title", "date", "time", "location", "memo"])
 
 
@@ -26,41 +26,33 @@ def load_schedules():
     with open(CSV_FILE, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # 既存のCSVデータにidがない場合の互換性ケア
-            if "id" not in row or not row["id"]:
-                row["id"] = str(uuid.uuid4())
             schedules.append(row)
-
-    try:
-        schedules.sort(key=lambda x: (x["date"], x["time"]))
-    except Exception:
-        pass
     return schedules
 
 
 def save_schedule(title, date, time, location, memo):
-    """CSVファイルに新しい予定を追記する（新規登録）"""
+    """CSVファイルに新しい予定を追記する（新規登録時にIDを発行）"""
     init_csv()
-    new_id = str(uuid.uuid4())  # 一意のIDを生成
+    new_id = str(uuid.uuid4())  # ここで確実に固定のIDを発行
     with open(CSV_FILE, mode="a", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([new_id, title, date, time, location, memo])
 
 
 def update_schedule_file(schedules):
-    """全予定リストを受け取り、CSVファイルを上書き保存する（ヘルパー関数）"""
+    """全予定リストを受け取り、CSVファイルを上書き保存する（編集・削除用）"""
     with open(CSV_FILE, mode="w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["id", "title", "date", "time", "location", "memo"])
         for s in schedules:
             writer.writerow(
                 [
-                    s["id"],
-                    s["title"],
-                    s["date"],
-                    s["time"],
-                    s["location"],
-                    s["memo"],
+                    s.get("id"),
+                    s.get("title"),
+                    s.get("date"),
+                    s.get("time"),
+                    s.get("location"),
+                    s.get("memo"),
                 ]
             )
 
@@ -96,15 +88,18 @@ def index():
 
         return redirect(url_for("index"))
 
-    schedules = load_schedules()
-    return render_template("index.html", schedules=schedules)
+    # 表示用にソート（元のCSVの並び順は壊さない）
+    raw_schedules = load_schedules()
+    display_schedules = sorted(
+        raw_schedules, key=lambda x: (x.get("date", ""), x.get("time", ""))
+    )
+    return render_template("index.html", schedules=display_schedules)
 
 
 @app.route("/edit/<string:id>", methods=["GET", "POST"])
 def edit(id):
     """予定の編集画面・更新処理"""
     schedules = load_schedules()
-    # 該当する予定を検索
     target_schedule = next((s for s in schedules if s["id"] == id), None)
 
     if not target_schedule:
@@ -112,29 +107,30 @@ def edit(id):
         return redirect(url_for("index"))
 
     if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        date = request.form.get("date", "").strip()
-        time = request.form.get("time", "").strip()
-        location = request.form.get("location", "").strip()
-        memo = request.form.get("memo", "").strip()
+        # ユーザーが入力した最新のデータを辞書にする
+        user_input = {
+            "id": id,
+            "title": request.form.get("title", "").strip(),
+            "date": request.form.get("date", "").strip(),
+            "time": request.form.get("time", "").strip(),
+            "location": request.form.get("location", "").strip(),
+            "memo": request.form.get("memo", "").strip(),
+        }
 
-        # バリデーション（新規登録と同じ基準）
-        if not title or not date:
+        # バリデーション
+        if not user_input["title"] or not user_input["date"]:
             flash("エラー：予定名と日付は必須入力です。", "error")
-            return render_template("edit.html", schedule=target_schedule)
+            # 入力しかけたデータを保持したまま編集画面を再描画
+            return render_template("edit.html", schedule=user_input)
 
         try:
-            datetime.strptime(date, "%Y-%m-%d")
+            datetime.strptime(user_input["date"], "%Y-%m-%d")
         except ValueError:
             flash("エラー：日付の形式が不正です。", "error")
-            return render_template("edit.html", schedule=target_schedule)
+            return render_template("edit.html", schedule=user_input)
 
-        # データの更新
-        target_schedule["title"] = title
-        target_schedule["date"] = date
-        target_schedule["time"] = time
-        target_schedule["location"] = location
-        target_schedule["memo"] = memo
+        # 該当の予定を更新
+        target_schedule.update(user_input)
 
         try:
             update_schedule_file(schedules)
@@ -143,15 +139,13 @@ def edit(id):
         except Exception as e:
             flash(f"更新に失敗しました（システムエラー: {e}）", "error")
 
-    # GET時は編集画面を表示
     return render_template("edit.html", schedule=target_schedule)
 
 
 @app.route("/delete/<string:id>", methods=["POST"])
 def delete(id):
-    """予定の削除処理（安全のためPOSTリクエストのみ受付）"""
+    """予定の削除処理"""
     schedules = load_schedules()
-    # 該当するIDを除外した新しいリストを作成
     filtered_schedules = [s for s in schedules if s["id"] != id]
 
     if len(schedules) == len(filtered_schedules):
