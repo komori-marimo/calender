@@ -54,7 +54,12 @@ Googleカレンダー連携
 予定の削除ができる
 日付ごとの予定を確認できる
 
-ユースケース図
+## 設計図一覧
+
+### 1. ユースケース図
+アクター（利用者）と、アプリの主要な機能（ユースケース）の関係性を表した図です。
+
+```mermaid
 flowchart LR
     %% アクターの定義
     Student((学生))
@@ -88,30 +93,72 @@ flowchart LR
     Homemaker --> UC3
     Homemaker --> UC4
     Homemaker --> UC5
-
-    クラス図
-    classDiagram
-    class User {
-        +String userType
+---
+```mermaid
+classDiagram
+    class SystemUser {
+        +userType
         +viewCalendar()
     }
     class Schedule {
-        -int id
-        -String title
-        -Date date
-        -Time time
-        -String location
-        -String memo
+        -id
+        -title
+        -date
+        -time
+        -location
+        -memo
         +create()
         +read()
         +update()
         +delete()
     }
     class Notification {
-        -int notificationId
-        -Time alertTime
+        -notificationId
+        -alertTime
         +sendReminder()
     }
 
-    User "1" --> "*" Schedule : 予定を管理する
+    SystemUser "1" --> "*" Schedule : 予定を管理する
     Schedule "1" --> "0..1" Notification : 通知を設定する
+---
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 利用者
+    participant UI as 画面 (カレンダーUI)
+    participant Ctrl as コントローラ (処理)
+    participant DB as モデル (データベース)
+
+    User->>UI: 予定情報を入力して「登録」ボタンをクリック
+    Note over User,UI: 入力: 予定名, 日付, 時間, 場所, メモ
+    UI->>Ctrl: 予定登録リクエスト送信
+    Ctrl->>DB: 予定データを保存 (Create)
+    
+    alt 保存成功
+        DB-->>Ctrl: 成功レスポンス
+        Ctrl-->>UI: 登録完了通知 ＆ 画面再描画
+        UI-->>User: カレンダーに予定が表示される
+    else 入力エラー等による保存失敗
+        DB-->>Ctrl: 失敗レスポンス
+        Ctrl-->>UI: エラーメッセージ返却
+        UI-->>User: 「登録に失敗しました」と表示
+    endstateDiagram-v2
+---
+```mermaid
+    [*] --> 未登録 : 予定の計画
+
+    未登録 --> 登録済み : 予定を登録する (Create)
+    
+    状態: 登録済み
+    登録済み --> 登録済み : 予定を編集する (Update)
+    
+    %% 当日・リマインダー通知のトリガー
+    登録済み --> 通知済み : 予定の時刻になる / リマインダー発生
+    通知済み --> 登録済み : 通知を確認する
+    
+    登録済み --> [*] : 予定を削除する (Delete)
+    通知済み --> [*] : 予定を削除する (Delete)
+    登録済み --> [*] : 予定を削除する (Delete)
+    通知済み --> [*] : 予定を削除する (Delete)
+---
